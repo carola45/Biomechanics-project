@@ -1,0 +1,63 @@
+generic note about subjects:
+
+------------------------------------------------------------------
+
+Subject 1 note:
+
+1-2-3)  missed markers (half of data): 
+	- Left medial epicondyle of femur (X,Y,Z) 
+
+5)	missed markers (half of data):
+	- Right Thigh
+
+------------------------------------------------------------------
+
+Subject 2 note:
+
+1)	missed markers (half of data): 
+	- Right Trochanter (X,Y,Z) 
+	- Right Thigh (X,Y,Z) 
+
+2-3-4)	missed markers (half of data):
+	- Right Thigh (X,Y,Z)
+
+5)	missed markers (half of data):
+	- Left Thigh (X,Y,Z)
+
+------------------------------------------------------------------
+
+Subject 3 note:
+
+1)	missed markers (half of data): 
+	- Greater Trochanter (X,Y,Z) 
+	- Right ASIS (X,Y,Z) 
+
+2)	missed markers:
+	- Right ASIS  (X,Y,Z)  (all of data)
+	- Greater Trochanter (X,Y,Z) (half of data)
+
+5)	missed markers (half of data):
+	- Greater Trochanter (X,Y,Z)
+
+------------------------------------------------------------------
+
+Subject 4 note:
+
+it's perfect!!!
+GOOD JOBS CAROLA :)
+
+------------------------------------------------------------------
+
+Subject 5 (ARTHUR) note:
+
+2)	missed markers (half of data): 
+	- Left Thigh (X,Y,Z) 
+
+------------------------------------------------------------------
+
+Subject 6 (DIEGO) note:
+
+it's perfect!!!
+GOOD JOBS DIEGO :)
+
+------------------------------------------------------------------
