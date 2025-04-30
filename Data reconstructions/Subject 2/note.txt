@@ -1,0 +1,12 @@
+Subject 2 note:
+
+1)	missed markers (half of data): 
+	- Right Trochanter (X,Y,Z) 
+	- Right Thigh (X,Y,Z) 
+
+
+2-3-4)	missed markers (half of data):
+	- Right Thigh (X,Y,Z)
+
+5)	missed markers (half of data):
+	- Left Thigh (X,Y,Z)
