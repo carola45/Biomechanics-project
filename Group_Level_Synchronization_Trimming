@@ -1,0 +1,189 @@
+%% === Group-Level Synchronization and Trimming === %%
+
+clear; clc; close all;
+
+% ====== PARAMETERS ======
+numProfessionals = 4;  % Number of professionals (athletes)
+numTrials = 5;         % Number of trials per professional
+filePrefix = 'Professional';  % Prefix for the files (e.g., 'Professional4')
+fileSuffix = '.xlsx';  % Suffix for the files (e.g., '.xlsx')
+outputSuffix = '.mat';  % Output suffix for the .mat files
+
+% ====== LOAD FUNCTION ======
+function data = readXYZData(file, subjectNumber)
+    T = readtable(file);
+
+    if subjectNumber == 3
+        % Left-handed subject (Subject 3) - use left-side points
+        data.x1 = T{2:end, 33}; data.z1 = T{2:end, 34}; data.y1 = T{2:end, 35};
+        data.x2 = T{2:end, 45}; data.z2 = T{2:end, 46}; data.y2 = T{2:end, 47};
+        data.x3 = T{2:end, 48}; data.z3 = T{2:end, 49}; data.y3 = T{2:end, 50};
+        data.x4 = T{2:end, 57}; data.z4 = T{2:end, 58}; data.y4 = T{2:end, 59};
+    else
+        % Right-handed subjects (default columns)
+        data.x1 = T{2:end, 30}; data.z1 = T{2:end, 31}; data.y1 = T{2:end, 32};
+        data.x2 = T{2:end, 36}; data.z2 = T{2:end, 37}; data.y2 = T{2:end, 38};
+        data.x3 = T{2:end, 39}; data.z3 = T{2:end, 40}; data.y3 = T{2:end, 41};
+        data.x4 = T{2:end, 54}; data.z4 = T{2:end, 55}; data.y4 = T{2:end, 56};
+    end
+end
+
+
+% ====== LOAD & DETECT START INDEX ======
+allPoints = cell(numProfessionals, numTrials, 4);  % 4 points per trial for each professional
+startIndices = zeros(numProfessionals, numTrials, 4);  % Store start indices for each trial and point
+
+for p = 1:numProfessionals
+    for t = 1:numTrials
+        % Construct the filename for each professional and trial
+        filename = sprintf('%s%d_Trial_%d%s', filePrefix, p, t, fileSuffix);
+        
+        % Check if the file exists
+        if ~isfile(filename)
+            warning('File not found: %s', filename);
+            continue;clc
+        end
+        
+        % Read data from file
+        d = readXYZData(filename, p);  % Pass the subject number (p) to select the correct columns
+
+        allPoints{p, t, 1} = [d.x1, d.y1, d.z1];
+        allPoints{p, t, 2} = [d.x2, d.y2, d.z2];
+        allPoints{p, t, 3} = [d.x3, d.y3, d.z3];
+        allPoints{p, t, 4} = [d.x4, d.y4, d.z4];
+
+        % Loop through each point to find the Y velocity start of decline
+        for point = 1:4
+            y_vel = diff(allPoints{p, t, point}(:, 2)); % Y velocity (derivative)
+            threshold = -0.005;  % Set the threshold where the Y velocity starts going down
+
+            % Find the first index where Y velocity goes below the threshold
+            idx = find(y_vel < threshold, 1, 'first');
+
+            if isempty(idx)
+                idx = 1; % If no threshold crossing, use start of signal
+            end
+
+            startIndices(p, t, point) = idx;  % Store the start index for this point
+        end
+    end
+end
+
+% ====== ALIGN TO COMMON START ======
+minStart = min(startIndices(:));  % Find the earliest start across all trials and points
+aligned = cell(numProfessionals, numTrials, 4);
+
+for p = 1:numProfessionals
+    for t = 1:numTrials
+        for point = 1:4
+            sig = allPoints{p, t, point};
+            offset = startIndices(p, t, point) - minStart;  % Align to common start point
+
+            % Shift the signal by the calculated offset
+            if offset > 0
+                aligned{p, t, point} = sig(offset:end, :);  % Align signal by shifting it
+            else
+                aligned{p, t, point} = [repmat(sig(1,:), abs(offset), 1); sig];  % Padding at the beginning
+            end
+        end
+    end
+end
+
+% ====== FULL VISUAL COMPARISON ======
+for point = 1:4
+    figure('Name', ['Full Comparison - Point ', num2str(point)], 'NumberTitle', 'off');
+
+    % Plot original full signals
+    for axis = 1:3
+        subplot(3, 2, 2*axis-1); hold on;
+        for p = 1:numProfessionals
+            for t = 1:numTrials
+                sig = allPoints{p, t, point};
+                plot(sig(:, axis), 'DisplayName', sprintf('Professional %d - Trial %d', p, t));
+                xline(startIndices(p, t, point), 'r--'); % show detected start
+            end
+        end
+        title(['Original - Axis ', char('X'+axis-1), ' - Point ', num2str(point)]);
+        xlabel('Frame'); ylabel('Position'); grid on;
+        legend('show');
+    end
+
+    % Plot aligned signals
+    for axis = 1:3
+        subplot(3, 2, 2*axis); hold on;
+        for p = 1:numProfessionals
+            for t = 1:numTrials
+                sig = aligned{p, t, point};
+                plot(sig(:, axis), 'DisplayName', sprintf('Professional %d - Trial %d', p, t));
+            end
+        end
+        title(['Aligned - Axis ', char('X'+axis-1), ' - Point ', num2str(point)]);
+        xlabel('Frame'); ylabel('Position'); grid on;
+        legend('show');
+    end
+end
+
+%%
+% ====== TRIMMED SIGNALS & SAVE ======
+framesBeforeStart = 100;        % Number of frames to keep before alignment point
+manualEndFrame = 450;          % Manually define where to stop (can be adjusted)
+
+trimmed = cell(numProfessionals, numTrials, 4);  % Container for cropped signals
+
+for p = 1:numProfessionals
+    for t = 1:numTrials
+        for point = 1:4
+            sig = aligned{p, t, point};
+
+            % Determine start and end cropping indices
+            cropStart = max(1, framesBeforeStart + 1);
+            cropEnd = min(manualEndFrame, size(sig, 1));
+
+            % Perform cropping
+            trimmed{p, t, point} = sig(cropStart:cropEnd, :);
+        end
+    end
+end
+
+%%
+% ====== VISUAL CHECK FOR TRIMMED SIGNALS ======
+
+% Create a figure for each professional
+for p = 1:numProfessionals
+    for t = 1:numTrials
+        figure('Name', sprintf('Trimmed Data - Professional %d, Trial %d', p, t), 'NumberTitle', 'off');
+        
+        for point = 1:4
+            subplot(4, 1, point); hold on;
+            % Extract trimmed signals for each point
+            sig = trimmed{p, t, point};
+            
+            % Plot each axis (x, y, z)
+            for axis = 1:3
+                plot(sig(:, axis), 'DisplayName', sprintf('Axis %s', char('X'+axis-1)));
+            end
+            title(sprintf('Point %d', point));
+            xlabel('Frame');
+            ylabel('Position');
+            grid on;
+            legend('show');
+        end
+    end
+end
+
+%%
+% ====== SAVE MANUALLY TRIMMED DATA TO .MAT FILES ======
+for p = 1:numProfessionals
+    for t = 1:numTrials
+        trialData = struct();
+        for point = 1:4
+            trialData.(['Point' num2str(point)]) = trimmed{p, t, point};  % Save trimmed signals
+        end
+
+        % Construct output filename
+        filename = sprintf('Trimmed_Professional%d_Trial%d%s', p, t, outputSuffix);
+        
+        % Save to .mat file
+        save(filename, '-struct', 'trialData');
+    end
+end
